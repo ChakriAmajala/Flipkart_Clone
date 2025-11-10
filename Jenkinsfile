@@ -10,10 +10,10 @@ pipeline {
         DOCKERHUB_USER = 'chakriamajaladocker'
         IMAGE_NAME = 'flipkart_clone'
         HOST_PORT = "4000"
+        CONTAINER_PORT = "80"      // Added missing variable
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
         SONAR_HOST_URL = 'http://13.211.160.23:9090/'
-        
     }
 
     stages {
@@ -44,20 +44,26 @@ pipeline {
                 }
             }
         }
-             stage('Build Docker Image') {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest ."
+                    sh '''
+                    echo "Building Docker image..."
+                    docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
+                    '''
                 }
             }
         }
-
 
         stage('Login to DockerHub') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                        sh "echo $PASS | docker login -u $USER --password-stdin"
+                        sh '''
+                        echo "Logging in to Docker Hub..."
+                        echo $PASS | docker login -u $USER --password-stdin
+                        '''
                     }
                 }
             }
@@ -65,28 +71,41 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                sh "docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest"
+                sh '''
+                echo "Pushing image to Docker Hub..."
+                docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                '''
             }
         }
 
         stage('Deploy Container') {
             steps {
                 script {
-                    sh "docker rm -f flipkart_clone|| true"
-                    sh "docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest"
+                    sh '''
+                    echo "Stopping old container (if exists)..."
+                    docker rm -f flipkart_clone || true
+
+                    echo "Running new container..."
+                    docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+
+                    echo "Checking running containers..."
+                    docker ps -a
+                    '''
                 }
             }
         }
+    }
 
     post {
         always {
-            emailext attachLog: true,
-                subject: "'${currentBuild.result}'",
-                body: "Project: ${env.JOB_NAME}<br/>" +
-                      "Build Number: ${env.BUILD_NUMBER}<br/>" +
-                      "URL: ${env.BUILD_URL}<br/>",
+            emailext(
+                attachLog: true,
+                subject: "'${currentBuild.result}' - Flipkart_Clone Pipeline",
+                body: """<b>Project:</b> ${env.JOB_NAME}<br/>
+                         <b>Build Number:</b> ${env.BUILD_NUMBER}<br/>
+                         <b>URL:</b> ${env.BUILD_URL}<br/>""",
                 to: 'chakridevopsengineer@gmail.com'
+            )
         }
     }
 }
-
