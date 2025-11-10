@@ -1,9 +1,11 @@
-function createErrorHandler(message, statusCode) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
-    Error.captureStackTrace(error, createErrorHandler);
-    return error;
+class ErrorHandler extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+
+    // Capture stack trace for better debugging
+    Error.captureStackTrace(this, this.constructor);
   }
-  
-  module.exports = createErrorHandler;
-  
+}
+
+module.exports = ErrorHandler;

@@ -7,9 +7,13 @@ pipeline {
     }
 
     environment {
+        DOCKERHUB_USER = 'chakriamajaladocker'
+        IMAGE_NAME = 'flipkart_clone'
+        HOST_PORT = "4000"
+        CONTAINER_PORT = "4000"  // ✅ Fixed to match Dockerfile and app
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
-        SONAR_HOST_URL = 'http://3.107.243.117:9090/'
+        SONAR_HOST_URL = 'http://13.211.160.23:9090/'
     }
 
     stages {
@@ -21,7 +25,7 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/ChakriAmajala/Flipkart_Clone.git'
+                git branch: 'master', url: 'https://github.com/ChakriAmajala/Flipkart_Clone.git'
                 sh 'ls -la'
             }
         }
@@ -30,7 +34,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonarr', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        echo "Running SonarQube analysis..."
+                        echo "🔍 Running SonarQube analysis..."
                         ${SCANNER_HOME}/bin/sonar-scanner \
                           -Dsonar.projectKey=Flipkart_Clone \
                           -Dsonar.projectName=Flipkart_Clone \
@@ -41,50 +45,70 @@ pipeline {
             }
         }
 
-
-        stage('Docker Build & Push') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh '''
-                        echo "Building Docker image for Flipkart_Clone..."
-                        docker build -t chakriamajaladocker/flipkart_clone:latest .
+                    sh '''
+                    set -e
+                    echo "🐳 Building Docker image..."
+                    docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
+                    '''
+                }
+            }
+        }
 
-                        echo "Pushing Docker image to Docker Hub..."
-                        docker push chakriamajaladocker/flipkart_clone:latest
+        stage('Login to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh '''
+                        echo "🔐 Logging in to Docker Hub..."
+                        echo $PASS | docker login -u $USER --password-stdin
                         '''
                     }
                 }
             }
         }
 
-        stage('Deploy to Container') {
+        stage('Push Docker Image') {
             steps {
                 sh '''
-                echo "Stopping old container if running..."
-                docker stop flipkart || true
-                docker rm flipkart || true
-
-                echo "Running new Flipkart container on port 4000..."
-                docker run -d --restart=always --name flipkart -p 4000:4000 chakriamajaladocker/flipkart_clone:latest
-
-                echo "Container logs..."
-                sleep 5
-                docker logs flipkart
+                echo "📤 Pushing image to Docker Hub..."
+                docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 '''
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    sh '''
+                    echo "🚀 Deploying container..."
+
+                    # Stop and remove old container if exists
+                    docker rm -f flipkart_clone || true
+
+                    # Run new container with correct ports
+                    docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+
+                    echo "✅ Deployment complete. Checking containers..."
+                    docker ps -a
+                    '''
+                }
             }
         }
     }
 
     post {
         always {
-            emailext attachLog: true,
-                subject: "'${currentBuild.result}'",
-                body: "Project: ${env.JOB_NAME}<br/>" +
-                      "Build Number: ${env.BUILD_NUMBER}<br/>" +
-                      "URL: ${env.BUILD_URL}<br/>",
+            emailext(
+                attachLog: true,
+                subject: "'${currentBuild.result}' - Flipkart_Clone Pipeline",
+                body: """<b>Project:</b> ${env.JOB_NAME}<br/>
+                         <b>Build Number:</b> ${env.BUILD_NUMBER}<br/>
+                         <b>URL:</b> ${env.BUILD_URL}<br/>""",
                 to: 'chakridevopsengineer@gmail.com'
+            )
         }
     }
 }
-
