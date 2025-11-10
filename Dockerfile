@@ -1,22 +1,19 @@
-# Use lightweight Node.js base image
+# Use Node.js base image
 FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy only package files first (for layer caching)
+# Copy package files from server folder
 COPY server/package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN npm install
 
-# Copy rest of the application files
+# Copy all source code from server folder
 COPY server/. .
 
-# Copy .env if needed (only if you use it inside Docker)
-# COPY server/.env .env
-
-# Expose the same port your app uses
+# Expose port
 EXPOSE 4000
 
 # Start the app
