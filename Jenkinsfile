@@ -9,7 +9,7 @@ pipeline {
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
-        SONAR_HOST_URL = 'http://3.107.243.117:9090/'
+        SONAR_HOST_URL = 'http://13.211.160.23:9090/'
     }
 
     stages {
@@ -48,10 +48,10 @@ pipeline {
                     withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
                         sh '''
                         echo "Building Docker image for Flipkart_Clone..."
-                        docker build -t chakriamajaladocker/flipkart_clone:latest .
+                        docker build -t flipkart_clone:latest .
 
                         echo "Pushing Docker image to Docker Hub..."
-                        docker push chakriamajaladocker/flipkart_clone:latest
+                        docker push flipkart_clone:latest
                         '''
                     }
                 }
@@ -66,7 +66,7 @@ pipeline {
                 docker rm flipkart || true
 
                 echo "Running new Flipkart container on port 4000..."
-                docker run -d --restart=always --name flipkart -p 4000:4000 chakriamajaladocker/flipkart_clone:latest
+                docker run -d --restart=always --name flipkart -p 4000:4000 flipkart_clone:latest
 
                 echo "Container logs..."
                 sleep 5
