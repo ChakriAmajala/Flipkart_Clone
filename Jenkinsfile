@@ -13,7 +13,7 @@ pipeline {
         CONTAINER_PORT = "4000"  // ✅ Fixed to match Dockerfile and app
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
-        SONAR_HOST_URL = 'http://13.211.160.23:9090/'
+        SONAR_HOST_URL = 'http://3.106.204.72:9090/'
     }
 
     stages {
