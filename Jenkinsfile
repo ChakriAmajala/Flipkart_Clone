@@ -7,9 +7,13 @@ pipeline {
     }
 
     environment {
+        DOCKERHUB_USER = 'chakriamajaladocker'
+        IMAGE_NAME = 'flipkart_clone'
+        HOST_PORT = "4000"
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
         SONAR_HOST_URL = 'http://13.211.160.23:9090/'
+        
     }
 
     stages {
