@@ -1,42 +1,47 @@
 const ErrorHandler = require("../utils/errorHandler");
 
 const errorHandler = (err, req, res, next) => {
-    let error = { ...err };
-    error.statusCode = err.statusCode || 500;
-    error.message = err.message || "Internal Server Error";
+  // Clone error object
+  let error = { ...err };
+  error.message = err.message || "Internal Server Error";
+  error.statusCode = err.statusCode || 500;
 
-    // Handle invalid MongoDB ObjectId (CastError)
-    if (error.name === "CastError") {
-        const message = `Resource Not Found. Invalid: ${error.path}`;
-        error = new ErrorHandler(message, 400);
-    }
+  // 🧠 Handle invalid MongoDB ObjectId (CastError)
+  if (error.name === "CastError") {
+    const message = `Resource not found. Invalid: ${error.path}`;
+    error = new ErrorHandler(message, 400);
+  }
 
-    // Handle duplicate field values (e.g. email already exists)
-    if (error.code === 11000) {
-        const message = `Duplicate ${Object.keys(error.keyValue)} entered`;
-        error = new ErrorHandler(message, 400);
-    }
+  // 🧠 Handle duplicate field values (e.g., duplicate email)
+  if (error.code === 11000) {
+    const message = `Duplicate field value entered: ${Object.keys(
+      error.keyValue
+    )}`;
+    error = new ErrorHandler(message, 400);
+  }
 
-    // Handle JWT errors
-    if (error.name === "JsonWebTokenError") {
-        if (error.message === "jwt expired") {
-            error = new ErrorHandler("JWT has expired", 401);
-        } else {
-            error = new ErrorHandler("Invalid JWT", 401);
-        }
-    }
+  // 🧠 Handle JWT-related errors
+  if (error.name === "JsonWebTokenError") {
+    error = new ErrorHandler("Invalid JWT token. Please log in again.", 401);
+  }
 
-    // Handle Mongoose validation errors
-    if (error.name === "ValidationError") {
-        const message = Object.values(error.errors).map((val) => val.message);
-        error = new ErrorHandler(message, 400);
-    }
+  if (error.name === "TokenExpiredError") {
+    error = new ErrorHandler("JWT token has expired. Please log in again.", 401);
+  }
 
-    // Final error response
-    res.status(error.statusCode).json({
-        success: false,
-        error: error.message || "Server Error",
-    });
+  // 🧠 Handle Mongoose validation errors
+  if (error.name === "ValidationError") {
+    const message = Object.values(error.errors)
+      .map((val) => val.message)
+      .join(", ");
+    error = new ErrorHandler(message, 400);
+  }
+
+  // 🧱 Send final structured error response
+  res.status(error.statusCode).json({
+    success: false,
+    message: error.message,
+  });
 };
 
 module.exports = errorHandler;
