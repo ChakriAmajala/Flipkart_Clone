@@ -44,41 +44,39 @@ pipeline {
                 }
             }
         }
-
-
-        stage('Docker Build & Push') {
+             stage('Build Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh '''
-                        echo "Building Docker image for Flipkart_Clone..."
-                        docker build -t flipkart_clone:latest .
+                    sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest ."
+                }
+            }
+        }
 
-                        echo "Pushing Docker image to Docker Hub..."
-                        docker push flipkart_clone:latest
-                        '''
+
+        stage('Login to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh "echo $PASS | docker login -u $USER --password-stdin"
                     }
                 }
             }
         }
 
-        stage('Deploy to Container') {
+        stage('Push Docker Image') {
             steps {
-                sh '''
-                echo "Stopping old container if running..."
-                docker stop flipkart || true
-                docker rm flipkart || true
-
-                echo "Running new Flipkart container on port 4000..."
-                docker run -d --restart=always --name flipkart -p 4000:4000 flipkart_clone:latest
-
-                echo "Container logs..."
-                sleep 5
-                docker logs flipkart
-                '''
+                sh "docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest"
             }
         }
-    }
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    sh "docker rm -f flipkart_clone|| true"
+                    sh "docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest"
+                }
+            }
+        }
 
     post {
         always {
