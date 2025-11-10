@@ -10,7 +10,7 @@ pipeline {
         DOCKERHUB_USER = 'chakriamajaladocker'
         IMAGE_NAME = 'flipkart_clone'
         HOST_PORT = "4000"
-        CONTAINER_PORT = "80"      // Added missing variable
+        CONTAINER_PORT = "5000"      // Added missing variable
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
         SONAR_HOST_URL = 'http://13.211.160.23:9090/'
