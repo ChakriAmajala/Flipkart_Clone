@@ -21,7 +21,7 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/ChakriAmajala/Flipkart_Clone.git'
+                git branch: 'master', url: 'https://github.com/ChakriAmajala/Flipkart_Clone.git'
                 sh 'ls -la'
             }
         }
