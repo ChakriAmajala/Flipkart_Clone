@@ -2,10 +2,12 @@
   "name": "Flipkart_Backend",
   "version": "1.0.0",
   "description": "tyring to make complete backend",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+  "start": "node server.js",
+  "dev": "nodemon server.js"
+}
+
   },
   "keywords": [],
   "author": "Rajan Kumar",
