@@ -10,7 +10,7 @@ pipeline {
         DOCKERHUB_USER = 'chakriamajaladocker'
         IMAGE_NAME = 'flipkart_clone'
         HOST_PORT = "4000"
-        CONTAINER_PORT = "3000"      // Added missing variable
+        CONTAINER_PORT = "4000"  // ✅ Fixed to match Dockerfile and app
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
         SONAR_HOST_URL = 'http://13.211.160.23:9090/'
@@ -34,7 +34,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonarr', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        echo "Running SonarQube analysis..."
+                        echo "🔍 Running SonarQube analysis..."
                         ${SCANNER_HOME}/bin/sonar-scanner \
                           -Dsonar.projectKey=Flipkart_Clone \
                           -Dsonar.projectName=Flipkart_Clone \
@@ -49,7 +49,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    echo "Building Docker image..."
+                    set -e
+                    echo "🐳 Building Docker image..."
                     docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
                     '''
                 }
@@ -61,7 +62,7 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         sh '''
-                        echo "Logging in to Docker Hub..."
+                        echo "🔐 Logging in to Docker Hub..."
                         echo $PASS | docker login -u $USER --password-stdin
                         '''
                     }
@@ -72,7 +73,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh '''
-                echo "Pushing image to Docker Hub..."
+                echo "📤 Pushing image to Docker Hub..."
                 docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 '''
             }
@@ -82,13 +83,15 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    echo "Stopping old container (if exists)..."
+                    echo "🚀 Deploying container..."
+
+                    # Stop and remove old container if exists
                     docker rm -f flipkart_clone || true
 
-                    echo "Running new container..."
+                    # Run new container with correct ports
                     docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
 
-                    echo "Checking running containers..."
+                    echo "✅ Deployment complete. Checking containers..."
                     docker ps -a
                     '''
                 }
