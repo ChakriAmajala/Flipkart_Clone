@@ -1,19 +1,17 @@
 # Use Node.js base image
 FROM node:18-alpine
 
-# Set working directory
-WORKDIR /app
+# Set working directory inside container
+WORKDIR /app/server
 
-# Copy package files from server folder
+# Copy package files and install dependencies
 COPY server/package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy all source code from server folder
+# Copy all backend source code
 COPY server/. .
 
-# Expose port
+# Expose port (matches your index.js)
 EXPOSE 4000
 
 # Start the app
