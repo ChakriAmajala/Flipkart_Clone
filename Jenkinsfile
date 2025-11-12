@@ -29,21 +29,21 @@ pipeline {
                 sh 'ls -la'
             }
         }
+stage('SonarQube Analysis') {
+  steps {
+    withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
+      sh '''
+        echo "🔍 Running SonarQube analysis..."
+        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/bin/sonar-scanner \
+          -Dsonar.projectKey=Flipkart_Clone \
+          -Dsonar.projectName=Flipkart_Clone \
+          -Dsonar.host.url=http://3.106.204.72:9090 \
+          -Dsonar.login=$SONAR_TOKEN
+      '''
+    }
+  }
+}
 
-        stage('SonarQube Analysis') {
-            steps {
-                withCredentials([string(credentialsId: 'sonarr', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                        echo "🔍 Running SonarQube analysis..."
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                          -Dsonar.projectKey=Flipkart_Clone \
-                          -Dsonar.projectName=Flipkart_Clone \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
