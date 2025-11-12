@@ -1,18 +1,24 @@
-# Use Node.js base image
-FROM node:18-alpine
+# -------------------------------
+# Stage 1 — Build React frontend
+# -------------------------------
+FROM node:23-alpine AS build
+WORKDIR /app
+COPY client ./client
+WORKDIR /app/client
+RUN npm install
+RUN npm run build
 
-# Set working directory inside container
+# -------------------------------
+# Stage 2 — Build backend + copy frontend
+# -------------------------------
+FROM node:23-alpine
+WORKDIR /app
+COPY server ./server
 WORKDIR /app/server
-
-# Copy package files and install dependencies
-COPY server/package*.json ./
 RUN npm install
 
-# Copy all backend source code
-COPY server/. .
+# Copy built frontend into backend public folder
+COPY --from=build /app/client/build ./public
 
-# Expose port (matches your index.js)
 EXPOSE 4000
-
-# Start the app
 CMD ["npm", "start"]
