@@ -34,14 +34,14 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withCredentials([string(credentialsId: 'sonarr', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                        echo "🔍 Running SonarQube analysis..."
+                    sh """
+                        echo '🔍 Running SonarQube analysis...'
                         ${SCANNER_HOME}/bin/sonar-scanner \
                           -Dsonar.projectKey=Flipkart_Clone \
                           -Dsonar.projectName=Flipkart_Clone \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_TOKEN
-                    '''
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.login=${SONAR_TOKEN}
+                    """
                 }
             }
         }
@@ -49,11 +49,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh '''
+                    sh """
                         set -e
-                        echo "🐳 Building Docker image..."
+                        echo '🐳 Building Docker image...'
                         docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
-                    '''
+                    """
                 }
             }
         }
@@ -61,4 +61,55 @@ pipeline {
         stage('Login to DockerHub') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: ']()
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh """
+                            echo '🔐 Logging in to Docker Hub...'
+                            echo ${PASS} | docker login -u ${USER} --password-stdin
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh """
+                    echo '📤 Pushing image to Docker Hub...'
+                    docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                """
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    sh """
+                        echo '🚀 Deploying container...'
+
+                        # Stop and remove old container if exists
+                        docker rm -f flipkart_clone || true
+
+                        # Run new container with correct ports
+                        docker run -d --name flipkart_clone -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+
+                        echo '✅ Deployment complete. Checking containers...'
+                        docker ps -a
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            emailext(
+                attachLog: true,
+                subject: "'${currentBuild.result}' - Flipkart_Clone Pipeline",
+                body: """<b>Project:</b> ${env.JOB_NAME}<br/>
+                         <b>Build Number:</b> ${env.BUILD_NUMBER}<br/>
+                         <b>URL:</b> ${env.BUILD_URL}<br/>""",
+                to: 'chakridevopsengineer@gmail.com'
+            )
+        }
+    }
+}
