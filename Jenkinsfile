@@ -13,7 +13,7 @@ pipeline {
         CONTAINER_PORT = "4000"  // ✅ Fixed to match Dockerfile and app
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_REGION = 'ap-south-1'
-        SONAR_HOST_URL = 'http://3.106.204.72:9090/'
+        SONAR_HOST_URL = 'http://3.27.219.50:9090/'
     }
 
     stages {
@@ -28,21 +28,20 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/ChakriAmajala/Flipkart_Clone.git'
                 sh 'ls -la'
             }
-        }
 stage('SonarQube Analysis') {
-  steps {
-    withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
-      sh '''
-        echo "🔍 Running SonarQube analysis..."
-        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/bin/sonar-scanner \
-          -Dsonar.projectKey=Flipkart_Clone \
-          -Dsonar.projectName=Flipkart_Clone \
-          -Dsonar.host.url=http://3.106.204.72:9090 \
-          -Dsonar.login=$SONAR_TOKEN
-      '''
-    }
-  }
-}
+            steps {
+                withCredentials([string(credentialsId: 'sonarr', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        echo "🔍 Running SonarQube analysis..."
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                          -Dsonar.projectKey=Flipkart_Clone \
+                          -Dsonar.projectName=Flipkart_Clone \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
 
 
         stage('Build Docker Image') {
